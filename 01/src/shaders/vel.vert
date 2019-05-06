@@ -37,14 +37,14 @@ void main(void) {
 	float theta   = atan(-dir.y, dir.x);
 	pos.xy        = rotate(pos.xy, theta);
 	pos.z         += 0.02;
-	float speed   = length(vel);
-	pos           *= speed;
+	float speed   = length(vel) * 100.0;
+	pos           *= min(speed, 2.0);
 	
 	pos.xy        += aPosOffset;
 	gl_Position   = uProjectionMatrix * uViewMatrix * uModelMatrix * vec4(pos, 1.0);
 	vTextureCoord = aTextureCoord;
 	vNormal       = aNormal;
 	// vDebug        = vec3(aUV, 0.0);
-	vDebug        = vec3(vel, 0.0);
-	// vDebug        = vec3(1.0, 0.0, 0.0);
+	// vDebug        = vec3(vel, 0.0);
+	vDebug        = vec3(1.0, 0.0, 0.0);
 }

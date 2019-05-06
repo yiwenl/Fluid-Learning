@@ -11,7 +11,7 @@ import ViewVelocity from './ViewVelocity';
 import FboPingPong from './FboPingPong';
 
 import fsVel from 'shaders/velocity.frag';
-
+import fsUpdate from 'shaders/update.frag';
 
 class SceneApp extends Scene {
 	constructor() {
@@ -33,11 +33,26 @@ class SceneApp extends Scene {
 
 
 		const fboSize = 512;
-		this._fboVel = new FboPingPong(fboSize, fboSize, {type:GL.FLOAT});
+		const oParam = {
+			type:GL.FLOAT, 
+			minFilter:GL.LINEAR_MIPMAP_NEAREST, 
+			magFilter:GL.LINEAR,
+			wrapS:GL.REPEAT,
+			wrapT:GL.REPEAT
+		};
+		this._fboVel = new FboPingPong(fboSize, fboSize, oParam);
 
 		this._fboVel.read.bind();
-		GL.clear(1, 1, 0, 1);
+		GL.clear(0, 0, 0, 1);
 		this._fboVel.read.unbind();
+
+		this._fboVel.write.bind();
+		GL.clear(0, 0, 0, 1);
+		this._fboVel.write.unbind();
+
+		this._fboVel.read.showParameters();
+
+		this._fboOutput = new FboPingPong(fboSize, fboSize, oParam);
 	}
 
 
@@ -54,8 +69,45 @@ class SceneApp extends Scene {
 
 		this.mesh = alfrid.Geom.bigTriangle();
 		this.shaderVel = new alfrid.GLShader(alfrid.ShaderLibs.bigTriangleVert, fsVel);
+		this.shaderUpdate = new alfrid.GLShader(alfrid.ShaderLibs.bigTriangleVert, fsUpdate);
+
+
+
+		this._fboVel.read.bind();
+		GL.clear(0, 0, 0, 1);
+		this.shaderVel.bind();
+		GL.draw(this.mesh);
+		this._fboVel.read.unbind();
+
+		this._fboOutput.read.bind();
+		GL.clear(0, 0, 0, 1);
+		this._bCopy.draw(this._textureGrid);
+		this._fboOutput.read.unbind();
 	}
 
+
+	updateOutput() {
+		
+		this._fboOutput.write.bind();
+		GL.clear(0, 0, 0, 1);
+		this.shaderUpdate.bind();
+
+		//	previous output
+		this.shaderUpdate.uniform("texture", "uniform1i", 0);
+		this._fboOutput.readTexture.bind(0);
+
+		//	velocity map
+		this.shaderUpdate.uniform("textureVel", "uniform1i", 1);
+		this._fboVel.readTexture.bind(1);
+
+		//	draw mesh
+		GL.draw(this.mesh);
+
+		this._fboOutput.write.unbind();
+
+		//	swap
+		this._fboOutput.swap();
+	}
 
 	render() {
 		let s;
@@ -63,22 +115,25 @@ class SceneApp extends Scene {
 
 		//	update velocity
 		this._fboVel.write.bind();
-		GL.clear(0, 0, 0, 0);
+		GL.clear(0, 0, 0, 1);
 		this.shaderVel.bind();
 		GL.draw(this.mesh);
 		this._fboVel.write.unbind();
 		this._fboVel.swap();
 
 
-		this._vPlane.render(this._textureGrid);
+		//	update output
+		this.updateOutput();
+
+		this._vPlane.render(this._fboOutput.readTexture);
 		this._vVelocity.render(this._fboVel.readTexture);
 
-		s = 200;
+		s = 250;
 		GL.viewport(0, 0, s, s);
 		this._bCopy.draw(this._textureGrid);
 
 		GL.viewport(s, 0, s, s);
-		this._bCopy.draw(this._textureUV);
+		this._bCopy.draw(this._fboOutput.readTexture);
 
 		GL.viewport(s*2, 0, s, s);
 		this._bCopy.draw(this._fboVel.readTexture);

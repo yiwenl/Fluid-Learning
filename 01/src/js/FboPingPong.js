@@ -29,9 +29,8 @@ class FboPingPong {
 		return this._fbos[1].getTexture();
 	}
 
-
 	swap() {
-		this._fbos = this._fbos.reverse();
+		this._fbos.reverse();
 	}
 }
 

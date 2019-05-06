@@ -1,11 +1,12 @@
 // ViewPlane.js
 
 import alfrid, { GL } from 'alfrid';
+import fs from 'shaders/plane.frag';
 
 class ViewPlane extends alfrid.View {
 	
 	constructor() {
-		super(null, alfrid.ShaderLibs.copyFrag);
+		super(null, fs);
 	}
 
 
@@ -15,10 +16,12 @@ class ViewPlane extends alfrid.View {
 	}
 
 
-	render(texture) {
+	render(texture, textureUV) {
 		this.shader.bind();
 		this.shader.uniform("texture", "uniform1i", 0);
 		texture.bind(0);
+		// this.shader.uniform("textureUV", "uniform1i", 1);
+		// textureUV.bind(1);
 		GL.draw(this.mesh);
 	}
 
