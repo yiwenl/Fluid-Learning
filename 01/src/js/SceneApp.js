@@ -4,7 +4,13 @@ import alfrid, { Scene, GL } from 'alfrid';
 import Assets from './Assets';
 import Config from './Config';
 import GridTexture from './GridTexture';
+import UVTexture from './UVTexture';
 import ViewPlane from './ViewPlane';
+import ViewVelocity from './ViewVelocity';
+
+import FboPingPong from './FboPingPong';
+
+import fsVel from 'shaders/velocity.frag';
 
 
 class SceneApp extends Scene {
@@ -23,6 +29,15 @@ class SceneApp extends Scene {
 		console.log('init textures');
 
 		this._textureGrid = new GridTexture();
+		this._textureUV = new UVTexture();
+
+
+		const fboSize = 512;
+		this._fboVel = new FboPingPong(fboSize, fboSize, {type:GL.FLOAT});
+
+		this._fboVel.read.bind();
+		GL.clear(1, 1, 0, 1);
+		this._fboVel.read.unbind();
 	}
 
 
@@ -35,6 +50,10 @@ class SceneApp extends Scene {
 
 
 		this._vPlane = new ViewPlane();
+		this._vVelocity = new ViewVelocity();
+
+		this.mesh = alfrid.Geom.bigTriangle();
+		this.shaderVel = new alfrid.GLShader(alfrid.ShaderLibs.bigTriangleVert, fsVel);
 	}
 
 
@@ -42,15 +61,27 @@ class SceneApp extends Scene {
 		let s;
 		GL.clear(0, 0, 0, 0);
 
+		//	update velocity
+		this._fboVel.write.bind();
+		GL.clear(0, 0, 0, 0);
+		this.shaderVel.bind();
+		GL.draw(this.mesh);
+		this._fboVel.write.unbind();
+		this._fboVel.swap();
 
-		this._bAxis.draw();
-		this._bDots.draw();
 
 		this._vPlane.render(this._textureGrid);
+		this._vVelocity.render(this._fboVel.readTexture);
 
-		s = 256;
+		s = 200;
 		GL.viewport(0, 0, s, s);
 		this._bCopy.draw(this._textureGrid);
+
+		GL.viewport(s, 0, s, s);
+		this._bCopy.draw(this._textureUV);
+
+		GL.viewport(s*2, 0, s, s);
+		this._bCopy.draw(this._fboVel.readTexture);
 
 	}
 
